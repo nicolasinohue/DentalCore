@@ -129,21 +129,27 @@ Fluxo básico:
 
 No ambiente atual do projeto:
 
+Exemplo de caminho do projeto no Windows:
+
 ```powershell
-cd "c:\Users\win\Desktop\Dev\Pessoal\Python\Odontologia"
+cd "C:\caminho\para\DentalCore"
 .\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
 Acesse:
 
-- aplicação: <http://127.0.0.1:8000/>
-- admin: <http://127.0.0.1:8000/admin/>
+- aplicação: `http://<host-local>:<porta>/`
+- admin: `http://<host-local>:<porta>/admin/`
+
+Exemplo comum em desenvolvimento:
+
+- aplicação: `http://127.0.0.1:8000/`
+- admin: `http://127.0.0.1:8000/admin/`
 
 ### Ambiente Local do Zero no Windows
 
 ```powershell
-cd "c:\Users\win\Desktop\Dev\Pessoal\Python\Odontologia"
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
@@ -156,7 +162,6 @@ python manage.py runserver
 ### Linux/macOS
 
 ```bash
-cd /caminho/para/Odontologia
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -207,10 +212,10 @@ cp .env.example .env
 Variáveis principais:
 
 ```env
-SECRET_KEY=sua-chave-forte-aqui
+SECRET_KEY=troque-por-uma-chave-secreta-forte
 DEBUG=true
-ALLOWED_HOSTS=127.0.0.1,localhost
-CSRF_TRUSTED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+ALLOWED_HOSTS=<host-local>,<outro-host-local>
+CSRF_TRUSTED_ORIGINS=http://<host-local>:<porta>,http://<outro-host-local>:<porta>
 DATABASE_URL=
 ALLOW_PUBLIC_REGISTRATION=false
 DEFAULT_APPOINTMENT_DURATION_MINUTES=60
@@ -220,9 +225,9 @@ Para produção:
 
 ```env
 DEBUG=false
-DATABASE_URL=postgresql://usuario:senha@host:5432/banco
-ALLOWED_HOSTS=seu-dominio.com,www.seu-dominio.com
-CSRF_TRUSTED_ORIGINS=https://seu-dominio.com,https://www.seu-dominio.com
+DATABASE_URL=postgresql://<usuario>:<senha>@<host>:<porta>/<banco>
+ALLOWED_HOSTS=example.com,www.example.com
+CSRF_TRUSTED_ORIGINS=https://example.com,https://www.example.com
 SECURE_HSTS_SECONDS=31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS=true
 SECURE_HSTS_PRELOAD=true
@@ -245,22 +250,21 @@ python manage.py runserver
 Exemplo:
 
 ```env
-DATABASE_URL=postgresql://usuario:senha@localhost:5432/odontologia_db
+DATABASE_URL=postgresql://<usuario>:<senha>@<host-local>:5432/<nome-do-banco>
 ```
 
 ## Produção com Gunicorn
 
 ```bash
-cd /caminho/para/Odontologia
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-export SECRET_KEY="chave-forte"
+export SECRET_KEY="troque-por-uma-chave-secreta-forte"
 export DEBUG=false
-export ALLOWED_HOSTS="seu-dominio.com,www.seu-dominio.com"
-export CSRF_TRUSTED_ORIGINS="https://seu-dominio.com,https://www.seu-dominio.com"
-export DATABASE_URL="postgresql://usuario:senha@host:5432/banco"
+export ALLOWED_HOSTS="example.com,www.example.com"
+export CSRF_TRUSTED_ORIGINS="https://example.com,https://www.example.com"
+export DATABASE_URL="postgresql://<usuario>:<senha>@<host>:<porta>/<banco>"
 export ALLOW_PUBLIC_REGISTRATION=false
 export DEFAULT_APPOINTMENT_DURATION_MINUTES=60
 
