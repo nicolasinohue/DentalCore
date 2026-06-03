@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Pacientes | DentalCore{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>Pacientes</h1>
+        <a class="btn" href="{% url 'patients_create' %}">Novo paciente</a>
+    </div>
+
+    <form method="get" class="search-row">
+        <input type="text" name="search" value="{{ search }}" placeholder="Buscar por nome, CPF, telefone ou observacoes">
+        <button class="btn btn-light" type="submit">Buscar</button>
+    </form>
+
+    {% if patients %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Telefone</th>
+                    <th>Ultima consulta</th>
+                    <th>Proxima consulta</th>
+                    <th>Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for patient in patients %}
+                <tr>
+                    <td>{{ patient.full_name }}</td>
+                    <td>{{ patient.cpf }}</td>
+                    <td>{{ patient.phone }}</td>
+                    <td>{% if patient.last_appointment %}{{ patient.last_appointment.date_time|date:'d/m/Y H:i' }}{% else %}-{% endif %}</td>
+                    <td>{% if patient.next_appointment %}{{ patient.next_appointment.date_time|date:'d/m/Y H:i' }}{% else %}-{% endif %}</td>
+                    <td class="actions">
+                        <a href="{% url 'patients_detail' patient.id %}">Ver</a>
+                        <a href="{% url 'patients_edit' patient.id %}">Editar</a>
+                        <a href="{% url 'patient_record' patient.id %}">Prontuario</a>
+                        <a class="danger-link" href="{% url 'patients_delete' patient.id %}">Excluir</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="empty">Nenhum paciente encontrado.</p>
+    {% endif %}
+
+    {% if page_obj.has_other_pages %}
+        <nav class="pagination" aria-label="Paginacao de pacientes">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-light" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Anterior</a>
+            {% endif %}
+            <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn btn-light" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Proxima</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+</section>
+{% endblock %}

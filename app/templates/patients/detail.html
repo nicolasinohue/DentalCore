@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Paciente | DentalCore{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>{{ patient.full_name }}</h1>
+        <div class="panel-actions">
+            <a class="btn btn-light" href="{% url 'patients_edit' patient.id %}">Editar paciente</a>
+            <a class="btn btn-light" href="{% url 'patient_record' patient.id %}">Prontuario</a>
+            <a class="btn btn-light" href="{% url 'patients_list' %}">Voltar</a>
+        </div>
+    </div>
+    <div class="summary-grid">
+        <article class="summary-item"><strong>CPF</strong><span>{{ patient.cpf }}</span></article>
+        <article class="summary-item"><strong>Telefone</strong><span>{{ patient.phone }}</span></article>
+        <article class="summary-item"><strong>Nascimento</strong><span>{{ patient.birth_date|date:'d/m/Y'|default:'-' }}</span></article>
+        <article class="summary-item"><strong>Cadastro</strong><span>{{ patient.created_at|date:'d/m/Y H:i' }}</span></article>
+        <article class="summary-item"><strong>Ultima consulta</strong><span>{% if last_appointment %}{{ last_appointment.date_time|date:'d/m/Y H:i' }}{% else %}-{% endif %}</span></article>
+        <article class="summary-item"><strong>Proxima consulta</strong><span>{% if next_appointment %}{{ next_appointment.date_time|date:'d/m/Y H:i' }}{% else %}-{% endif %}</span></article>
+    </div>
+    {% if patient.notes %}
+        <p class="top-gap"><strong>Observacoes:</strong> {{ patient.notes }}</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Consultas recentes</h2>
+        <a class="btn" href="{% url 'appointments_create' %}">Nova consulta</a>
+    </div>
+    {% if appointments %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Termino</th>
+                        <th>Duracao</th>
+                        <th>Procedimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                    <tr>
+                        <td>{{ appointment.date_time|date:'d/m/Y H:i' }}</td>
+                        <td>{{ appointment.end_time|date:'H:i' }}</td>
+                        <td>{{ appointment.duration_minutes }} min</td>
+                        <td>{{ appointment.treatment }}</td>
+                        <td><span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty">Nenhuma consulta registrada.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <h2>Historico clinico recente</h2>
+    {% if history_entries %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Procedimento</th>
+                        <th>Profissional</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in history_entries %}
+                    <tr>
+                        <td>{{ item.performed_at|date:'d/m/Y H:i' }}</td>
+                        <td>{{ item.procedure_name }}</td>
+                        <td>{{ item.professional|default:'-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty">Sem historico clinico registrado.</p>
+    {% endif %}
+</section>
+{% endblock %}

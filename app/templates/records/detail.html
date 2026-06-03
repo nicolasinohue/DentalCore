@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}Prontuario | DentalCore{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>Prontuario odontologico</h1>
+        <div class="panel-actions">
+            <a class="btn btn-light" href="{% url 'patient_record_pdf' patient.id %}">Exportar PDF</a>
+            <a class="btn btn-light" href="{% url 'patients_detail' patient.id %}">Ver paciente</a>
+            <a class="btn btn-light" href="{% url 'patients_list' %}">Voltar</a>
+        </div>
+    </div>
+    <div class="summary-grid">
+        <article class="summary-item"><strong>Paciente</strong><span>{{ patient.full_name }}</span></article>
+        <article class="summary-item"><strong>CPF</strong><span>{{ patient.cpf }}</span></article>
+        <article class="summary-item"><strong>Telefone</strong><span>{{ patient.phone }}</span></article>
+    </div>
+</section>
+
+<nav class="record-tabs" aria-label="Secoes do prontuario">
+    <a href="#anamnese">Anamnese</a>
+    <a href="#odontograma">Odontograma</a>
+    <a href="#evolucao">Evolucao</a>
+    <a href="#consultas">Consultas</a>
+    <a href="#documentos">Documentos</a>
+</nav>
+
+<section class="form-card" id="anamnese">
+    <h2>Anamnese</h2>
+    <form method="post" action="{% url 'patient_record_update' patient.id %}" class="form-grid">
+        {% csrf_token %}
+        <label>Queixa principal {{ record_form.chief_complaint }}</label>
+        <label>Historico medico {{ record_form.medical_history }}</label>
+        <label>Doencas sistemicas {{ record_form.systemic_diseases }}</label>
+        <label>Alergias {{ record_form.allergies }}</label>
+        <label>Medicacoes {{ record_form.medications }}</label>
+        <label>Cirurgias e internacoes {{ record_form.surgeries }}</label>
+        <label>Alteracoes de sangramento {{ record_form.bleeding_disorders }}</label>
+        <label>Gestante {{ record_form.pregnancy }}</label>
+        <label>Pressao arterial {{ record_form.blood_pressure }}</label>
+        <label>Historico odontologico {{ record_form.dental_history }}</label>
+        <label>Habitos {{ record_form.habits }}</label>
+        <label>Plano de tratamento {{ record_form.treatment_plan }}</label>
+        <button type="submit" class="btn">Salvar anamnese</button>
+    </form>
+</section>
+
+<section class="panel" id="odontograma">
+    <h2>Odontograma</h2>
+    <div class="tooth-grid">
+        {% for row in tooth_rows %}
+            {% for tooth in row %}
+                <article class="tooth-card {% if tooth.entry %}filled{% endif %}">
+                    <strong>{{ tooth.code }}</strong>
+                    <small>{% if tooth.entry %}{{ tooth.entry.condition }}{% else %}Sem registro{% endif %}</small>
+                </article>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <form method="post" action="{% url 'patient_record_odontogram' patient.id %}" class="form-grid top-gap">
+        {% csrf_token %}
+        <h3>{% if odontogram_instance %}Editar dente {{ odontogram_instance.tooth_code }}{% else %}Adicionar ou atualizar dente{% endif %}</h3>
+        <label>Dente {{ odontogram_form.tooth_code }}</label>
+        <label>Condicao {{ odontogram_form.condition }}</label>
+        <label>Observacoes {{ odontogram_form.notes }}</label>
+        <div class="form-actions">
+            <button type="submit" class="btn">Salvar no odontograma</button>
+            {% if odontogram_instance %}
+                <a class="btn btn-light" href="{% url 'patient_record' patient.id %}#odontograma">Cancelar edicao</a>
+            {% endif %}
+        </div>
+    </form>
+
+    {% if odontogram_entries %}
+    <div class="table-wrap top-gap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Dente</th>
+                    <th>Condicao</th>
+                    <th>Observacoes</th>
+                    <th>Atualizado em</th>
+                    <th>Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in odontogram_entries %}
+                <tr>
+                    <td>{{ entry.tooth_code }}</td>
+                    <td>{{ entry.condition }}</td>
+                    <td>{{ entry.notes|default:'-' }}</td>
+                    <td>{{ entry.updated_at|date:'d/m/Y H:i' }}</td>
+                    <td class="actions">
+                        <a href="{% url 'patient_record' patient.id %}?edit_odontogram={{ entry.id }}#odontograma">Editar</a>
+                        <form method="post" action="{% url 'patient_record_odontogram_delete' patient.id entry.id %}" class="inline-form">
+                            {% csrf_token %}
+                            <button type="submit" class="link-button danger-link">Remover</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
+
+<section class="panel" id="evolucao">
+    <h2>Evolucao clinica</h2>
+
+    <form method="post" action="{% if history_instance %}{% url 'patient_record_history_update' patient.id history_instance.id %}{% else %}{% url 'patient_record_history' patient.id %}{% endif %}" class="form-grid">
+        {% csrf_token %}
+        <h3>{% if history_instance %}Editar evolucao{% else %}Adicionar evolucao{% endif %}</h3>
+        <label>Consulta relacionada {{ history_form.appointment }}</label>
+        <label>Procedimento {{ history_form.procedure_name }}</label>
+        <label>Descricao {{ history_form.description }}</label>
+        <label>Profissional responsavel {{ history_form.professional }}</label>
+        <label>Data e hora {{ history_form.performed_at }}</label>
+        <div class="form-actions">
+            <button type="submit" class="btn">{% if history_instance %}Salvar evolucao{% else %}Adicionar ao historico{% endif %}</button>
+            {% if history_instance %}
+                <a class="btn btn-light" href="{% url 'patient_record' patient.id %}#evolucao">Cancelar edicao</a>
+            {% endif %}
+        </div>
+    </form>
+
+    {% if history_entries %}
+    <div class="table-wrap top-gap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Procedimento</th>
+                    <th>Profissional</th>
+                    <th>Descricao</th>
+                    <th>Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in history_entries %}
+                <tr>
+                    <td>{{ item.performed_at|date:'d/m/Y H:i' }}</td>
+                    <td>{{ item.procedure_name }}</td>
+                    <td>{{ item.professional|default:'-' }}</td>
+                    <td>{{ item.description|default:'-' }}</td>
+                    <td class="actions">
+                        <a href="{% url 'patient_record' patient.id %}?edit_history={{ item.id }}#evolucao">Editar</a>
+                        <form method="post" action="{% url 'patient_record_history_delete' patient.id item.id %}" class="inline-form">
+                            {% csrf_token %}
+                            <button type="submit" class="link-button danger-link">Remover</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="empty">Sem registros no historico clinico.</p>
+    {% endif %}
+</section>
+
+<section class="panel" id="consultas">
+    <div class="panel-header">
+        <h2>Consultas</h2>
+        <a class="btn" href="{% url 'appointments_create' %}">Nova consulta</a>
+    </div>
+    {% if appointments %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Termino</th>
+                    <th>Duracao</th>
+                    <th>Procedimento</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in appointments %}
+                <tr>
+                    <td>{{ appointment.date_time|date:'d/m/Y H:i' }}</td>
+                    <td>{{ appointment.end_time|date:'H:i' }}</td>
+                    <td>{{ appointment.duration_minutes }} min</td>
+                    <td>{{ appointment.treatment }}</td>
+                    <td><span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="empty">Nenhuma consulta registrada.</p>
+    {% endif %}
+</section>
+
+<section class="panel" id="documentos">
+    <h2>Documentos</h2>
+    <form method="post" action="{% url 'patient_record_attachment_create' patient.id %}" enctype="multipart/form-data" class="form-grid">
+        {% csrf_token %}
+        <label>Titulo {{ attachment_form.title }}</label>
+        <label>Arquivo {{ attachment_form.file }}</label>
+        <label>Descricao {{ attachment_form.description }}</label>
+        <button type="submit" class="btn">Adicionar documento</button>
+    </form>
+
+    {% if attachments %}
+        <div class="table-wrap top-gap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Titulo</th>
+                        <th>Arquivo</th>
+                        <th>Enviado em</th>
+                        <th>Descricao</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attachment in attachments %}
+                    <tr>
+                        <td>{{ attachment.title }}</td>
+                        <td><a href="{{ attachment.file.url }}" target="_blank" rel="noopener">Abrir</a></td>
+                        <td>{{ attachment.uploaded_at|date:'d/m/Y H:i' }}</td>
+                        <td>{{ attachment.description|default:'-' }}</td>
+                        <td>
+                            <form method="post" action="{% url 'patient_record_attachment_delete' patient.id attachment.id %}" class="inline-form">
+                                {% csrf_token %}
+                                <button type="submit" class="link-button danger-link">Remover</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty">Nenhum documento anexado.</p>
+    {% endif %}
+</section>
+{% endblock %}

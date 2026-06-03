@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Excluir consulta | DentalCore{% endblock %}
+
+{% block content %}
+<section class="form-card">
+    <h1>Excluir consulta</h1>
+    <p>Tem certeza que deseja remover esta consulta de <strong>{{ appointment.patient.full_name }}</strong>?</p>
+    <p class="alert alert-warning">
+        Esta acao e permanente. Para preservar o historico, considere editar o status para cancelado.
+    </p>
+
+    <form method="post" class="form-actions">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Sim, excluir</button>
+        <a class="btn btn-light" href="{% url 'appointments_list' %}">Cancelar</a>
+    </form>
+</section>
+{% endblock %}

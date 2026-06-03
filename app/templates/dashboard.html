@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | DentalCore{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+    <h1>Painel do Consultorio</h1>
+    <p>Controle pacientes e consultas em um unico lugar.</p>
+    <div class="period-switch">
+        <a class="btn btn-light {% if selected_period == 'day' %}is-active{% endif %}" href="{% url 'dashboard' %}?period=day">Dia atual</a>
+        <a class="btn btn-light {% if selected_period == 'month' %}is-active{% endif %}" href="{% url 'dashboard' %}?period=month">Mes atual</a>
+        <a class="btn btn-light {% if selected_period == 'year' %}is-active{% endif %}" href="{% url 'dashboard' %}?period=year">Ano atual</a>
+        <span class="period-label">Periodo selecionado: {{ period_label }}</span>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <h3>Pacientes cadastrados</h3>
+        <p>{{ total_patients }}</p>
+    </article>
+    <article class="stat-card">
+        <h3>Consultas cadastradas</h3>
+        <p>{{ total_appointments }}</p>
+    </article>
+    <article class="stat-card">
+        <h3>Consultas hoje</h3>
+        <p>{{ today_appointments }}</p>
+    </article>
+    <article class="stat-card">
+        <h3>Consultas no periodo</h3>
+        <p>{{ period_appointments_count }}</p>
+    </article>
+    <article class="stat-card">
+        <h3>Agendadas no periodo</h3>
+        <p>{{ period_scheduled }}</p>
+    </article>
+    <article class="stat-card">
+        <h3>Concluidas no periodo</h3>
+        <p>{{ period_completed }}</p>
+    </article>
+    <article class="stat-card">
+        <h3>Canceladas no periodo</h3>
+        <p>{{ period_canceled }}</p>
+    </article>
+    <article class="stat-card">
+        <h3>Cancelamento</h3>
+        <p>{{ cancellation_rate }}%</p>
+    </article>
+    <article class="stat-card">
+        <h3>Minutos ocupados</h3>
+        <p>{{ occupied_minutes }}</p>
+    </article>
+    <article class="stat-card">
+        <h3>Pacientes recorrentes</h3>
+        <p>{{ return_rate }}%</p>
+    </article>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Procedimentos mais comuns ({{ period_label }})</h2>
+    </div>
+
+    {% if top_treatments %}
+        <div class="chart-wrap local-chart" aria-label="Grafico de procedimentos mais comuns">
+            {% for item in top_treatments %}
+                <div class="bar-row">
+                    <span class="bar-label">{{ item.treatment }}</span>
+                    <div class="bar-track">
+                        <span class="bar-fill" style="width: {{ item.percent }}%"></span>
+                    </div>
+                    <strong>{{ item.total }}</strong>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Procedimento</th>
+                        <th>Quantidade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_treatments %}
+                    <tr>
+                        <td>{{ item.treatment }}</td>
+                        <td>{{ item.total }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty">Sem dados de procedimentos no periodo selecionado.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Tempo ocupado por procedimento ({{ period_label }})</h2>
+    </div>
+
+    {% if top_treatment_minutes %}
+        <div class="chart-wrap local-chart" aria-label="Grafico de tempo ocupado por procedimento">
+            {% for item in top_treatment_minutes %}
+                <div class="bar-row">
+                    <span class="bar-label">{{ item.treatment }}</span>
+                    <div class="bar-track">
+                        <span class="bar-fill" style="width: {{ item.percent }}%"></span>
+                    </div>
+                    <strong>{{ item.minutes }} min</strong>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty">Sem tempo ocupado no periodo selecionado.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Consultas do periodo</h2>
+        <a class="btn" href="{% url 'appointments_create' %}">Nova consulta</a>
+    </div>
+
+    {% if period_appointments_list %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Paciente</th>
+                        <th>Data/Hora</th>
+                        <th>Termino</th>
+                        <th>Duracao</th>
+                        <th>Procedimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in period_appointments_list %}
+                    <tr>
+                        <td>{{ appointment.patient.full_name }}</td>
+                        <td>{{ appointment.date_time|date:'d/m/Y H:i' }}</td>
+                        <td>{{ appointment.end_time|date:'H:i' }}</td>
+                        <td>{{ appointment.duration_minutes }} min</td>
+                        <td>{{ appointment.treatment }}</td>
+                        <td><span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty">Nenhuma consulta no periodo selecionado.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

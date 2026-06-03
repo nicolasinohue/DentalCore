@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Consultas | DentalCore{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>Consultas</h1>
+        <div class="panel-actions">
+            <a class="btn btn-light" href="{% url 'agenda' %}">Calendario</a>
+            <a class="btn" href="{% url 'appointments_create' %}">Nova consulta</a>
+        </div>
+    </div>
+
+    <form method="get" class="search-row">
+        <select name="period">
+            <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
+            <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
+            <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
+        </select>
+        <select name="status">
+            <option value="" {% if not status_filter %}selected{% endif %}>Todos os status</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="date" value="{{ date_filter }}">
+        <input type="text" name="search" value="{{ search }}" placeholder="Buscar por paciente, CPF, procedimento ou status">
+        <button class="btn btn-light" type="submit">Aplicar filtro</button>
+    </form>
+
+    <p class="empty">{{ title_period }}</p>
+
+    {% if appointments %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Paciente</th>
+                    <th>Data/Hora</th>
+                    <th>Termino</th>
+                    <th>Duracao</th>
+                    <th>Procedimento</th>
+                    <th>Status</th>
+                    <th>Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in appointments %}
+                <tr>
+                    <td>{{ appointment.patient.full_name }}</td>
+                    <td>{{ appointment.date_time|date:'d/m/Y H:i' }}</td>
+                    <td>{{ appointment.end_time|date:'H:i' }}</td>
+                    <td>{{ appointment.duration_minutes }} min</td>
+                    <td>{{ appointment.treatment }}</td>
+                    <td><span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td>
+                    <td class="actions">
+                        <a href="{% url 'appointments_edit' appointment.id %}">Editar</a>
+                        {% if appointment.status != 'cancelado' %}
+                            <a href="{% url 'appointments_cancel' appointment.id %}">Cancelar</a>
+                        {% endif %}
+                        <a class="danger-link" href="{% url 'appointments_delete' appointment.id %}">Excluir</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="empty">Nenhuma consulta cadastrada.</p>
+    {% endif %}
+
+    {% if page_obj.has_other_pages %}
+        <nav class="pagination" aria-label="Paginacao de consultas">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-light" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Anterior</a>
+            {% endif %}
+            <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn btn-light" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Proxima</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+</section>
+{% endblock %}

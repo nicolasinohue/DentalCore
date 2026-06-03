@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} | DentalCore{% endblock %}
+
+{% block content %}
+<section class="form-card">
+    <h1>{{ title }}</h1>
+    <form method="post" class="form-grid">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <label>Paciente {{ form.patient }} {{ form.patient.errors }}</label>
+        <label>Data e hora {{ form.date_time }} {{ form.date_time.errors }}</label>
+        <label>Duracao {{ form.duration_minutes }} {{ form.duration_minutes.errors }} <small class="help-text">{{ form.duration_minutes.help_text }}</small></label>
+        <label>Procedimento {{ form.treatment }} {{ form.treatment.errors }}</label>
+        <label>Status {{ form.status }} {{ form.status.errors }}</label>
+        <label>Observacoes {{ form.notes }} {{ form.notes.errors }}</label>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">Salvar</button>
+            <a class="btn btn-light" href="{% url 'appointments_list' %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

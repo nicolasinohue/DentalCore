@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Entrar | DentalCore{% endblock %}
+
+{% block content %}
+<section class="form-card auth-card">
+    <h1>Entrar</h1>
+    <form method="post" class="form-grid">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <label>
+            Usuario
+            {{ form.username }}
+            {{ form.username.errors }}
+        </label>
+
+        <label>
+            Senha
+            {{ form.password }}
+            {{ form.password.errors }}
+        </label>
+
+        <button type="submit" class="btn">Acessar</button>
+    </form>
+    {% if allow_public_registration %}
+        <p class="aux">Ainda nao tem conta? <a href="{% url 'register' %}">Criar conta</a></p>
+    {% else %}
+        <p class="aux">Para criar uma conta, solicite acesso ao administrador.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Agenda | DentalCore{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>Agenda</h1>
+        <a class="btn" href="{% url 'appointments_create' %}">Nova consulta</a>
+    </div>
+
+    <form method="get" class="search-row">
+        <select name="period">
+            <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
+            <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
+            <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
+        </select>
+        <select name="status">
+            <option value="" {% if not status_filter %}selected{% endif %}>Todos os status</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="date" value="{{ date_filter }}">
+        <button class="btn btn-light" type="submit">Filtrar</button>
+    </form>
+
+    <div class="period-nav">
+        <a href="?period={{ period }}&date={{ previous_date }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-light">Anterior</a>
+        <strong>{{ title_period }}</strong>
+        <a href="?period={{ period }}&date={{ next_date }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-light">Proximo</a>
+    </div>
+
+    <div class="agenda-layout">
+        <section class="calendar-card">
+            <h2>{{ calendar_month_label|title }}</h2>
+            <div class="calendar-grid calendar-weekdays">
+                <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span><span>Dom</span>
+            </div>
+            <div class="calendar-grid">
+                {% for cell in calendar_cells %}
+                    {% if cell.is_empty %}
+                        <div class="calendar-cell empty-cell"></div>
+                    {% else %}
+                        <a class="calendar-cell {% if cell.is_today %}today{% endif %} {% if cell.is_selected %}selected{% endif %}"
+                           href="?period=day&date={{ cell.date|date:'Y-m-d' }}">
+                            <span>{{ cell.date|date:'d' }}</span>
+                            {% if cell.count %}
+                                <small>{{ cell.count }} consulta{{ cell.count|pluralize }}</small>
+                            {% endif %}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="panel compact-panel">
+            <h2>Consultas do periodo</h2>
+            {% if appointments %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Paciente</th>
+                                <th>Data/Hora</th>
+                                <th>Termino</th>
+                                <th>Duracao</th>
+                                <th>Procedimento</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appointment in appointments %}
+                            <tr>
+                                <td>{{ appointment.patient.full_name }}</td>
+                                <td>{{ appointment.date_time|date:'d/m/Y H:i' }}</td>
+                                <td>{{ appointment.end_time|date:'H:i' }}</td>
+                                <td>{{ appointment.duration_minutes }} min</td>
+                                <td>{{ appointment.treatment }}</td>
+                                <td><span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="empty">Nao ha consultas neste periodo.</p>
+            {% endif %}
+        </section>
+    </div>
+</section>
+{% endblock %}

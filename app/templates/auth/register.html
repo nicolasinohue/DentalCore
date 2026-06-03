@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Cadastro | DentalCore{% endblock %}
+
+{% block content %}
+<section class="form-card auth-card">
+    <h1>Criar conta</h1>
+    <form method="post" class="form-grid">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <label>Nome {{ form.first_name }} {{ form.first_name.errors }}</label>
+        <label>Sobrenome {{ form.last_name }} {{ form.last_name.errors }}</label>
+        <label>Usuario {{ form.username }} {{ form.username.errors }}</label>
+        <label>E-mail {{ form.email }} {{ form.email.errors }}</label>
+        <label>Senha {{ form.password1 }} {{ form.password1.errors }}</label>
+        <label>Confirmacao de senha {{ form.password2 }} {{ form.password2.errors }}</label>
+
+        <button type="submit" class="btn">Cadastrar</button>
+    </form>
+    <p class="aux">Ja possui conta? <a href="{% url 'login' %}">Entrar</a></p>
+</section>
+{% endblock %}
