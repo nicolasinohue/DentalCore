@@ -5,6 +5,26 @@
 {% block content %}
 <section class="form-card">
     <h1>{{ title }}</h1>
+    {% if appointment %}
+        <div class="appointment-context">
+            <article>
+                <strong>Paciente</strong>
+                <span>{{ appointment.patient.full_name }}</span>
+            </article>
+            <article>
+                <strong>Telefone</strong>
+                <span>{{ appointment.patient.phone }}</span>
+            </article>
+            <article>
+                <strong>Horario atual</strong>
+                <span>{{ appointment.date_time|date:'d/m/Y H:i' }} ate {{ appointment.end_time|date:'H:i' }}</span>
+            </article>
+            <article>
+                <strong>Status</strong>
+                <span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
+            </article>
+        </div>
+    {% endif %}
     <form method="post" class="form-grid">
         {% csrf_token %}
         {{ form.non_field_errors }}

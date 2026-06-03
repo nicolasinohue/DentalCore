@@ -31,6 +31,29 @@
         <a href="?period={{ period }}&date={{ next_date }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-light">Proximo</a>
     </div>
 
+    <div class="agenda-summary">
+        <article>
+            <strong>{{ agenda_totals.total }}</strong>
+            <span>Total</span>
+        </article>
+        <article>
+            <strong>{{ agenda_totals.scheduled }}</strong>
+            <span>Agendadas</span>
+        </article>
+        <article>
+            <strong>{{ agenda_totals.completed }}</strong>
+            <span>Concluidas</span>
+        </article>
+        <article>
+            <strong>{{ agenda_totals.canceled }}</strong>
+            <span>Canceladas</span>
+        </article>
+        <article class="{% if agenda_totals.late %}attention{% endif %}">
+            <strong>{{ agenda_totals.late }}</strong>
+            <span>Atrasadas</span>
+        </article>
+    </div>
+
     <div class="agenda-layout">
         <section class="calendar-card">
             <h2>{{ calendar_month_label|title }}</h2>
@@ -56,32 +79,57 @@
 
         <section class="panel compact-panel">
             <h2>Consultas do periodo</h2>
-            {% if appointments %}
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Paciente</th>
-                                <th>Data/Hora</th>
-                                <th>Termino</th>
-                                <th>Duracao</th>
-                                <th>Procedimento</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for appointment in appointments %}
-                            <tr>
-                                <td>{{ appointment.patient.full_name }}</td>
-                                <td>{{ appointment.date_time|date:'d/m/Y H:i' }}</td>
-                                <td>{{ appointment.end_time|date:'H:i' }}</td>
-                                <td>{{ appointment.duration_minutes }} min</td>
-                                <td>{{ appointment.treatment }}</td>
-                                <td><span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            {% if agenda_totals.total %}
+                <div class="agenda-board">
+                    {% for day in agenda_days %}
+                        <article class="agenda-day {% if not day.total %}is-empty{% endif %}">
+                            <header class="agenda-day-header">
+                                <div>
+                                    <strong>{{ day.date|date:'d/m' }}</strong>
+                                    <span>{{ day.date|date:'l'|title }}</span>
+                                </div>
+                                <small>{{ day.total }} consulta{{ day.total|pluralize }}</small>
+                            </header>
+
+                            {% if day.appointments %}
+                                <div class="agenda-slots">
+                                    {% for item in day.appointments %}
+                                        <article class="appointment-card status-{{ item.appointment.status }} {% if item.is_late %}is-late{% endif %} {% if item.is_next %}is-next{% endif %}">
+                                            <div class="appointment-time">
+                                                <strong>{{ item.start_label }}</strong>
+                                                <span>{{ item.end_label }}</span>
+                                            </div>
+                                            <div class="appointment-main">
+                                                <div class="appointment-title">
+                                                    <strong>{{ item.appointment.patient.full_name }}</strong>
+                                                    <span class="badge badge-{{ item.appointment.status }}">{{ item.appointment.get_status_display }}</span>
+                                                </div>
+                                                <p>{{ item.appointment.treatment }}</p>
+                                                <div class="appointment-meta">
+                                                    <span>{{ item.appointment.duration_minutes }} min</span>
+                                                    <span>{{ item.appointment.patient.phone }}</span>
+                                                    {% if item.is_late %}
+                                                        <span class="meta-alert">Atrasada</span>
+                                                    {% elif item.is_next %}
+                                                        <span class="meta-next">Proxima</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="appointment-actions">
+                                                    <a href="{% url 'patients_detail' item.appointment.patient.id %}">Paciente</a>
+                                                    <a href="{% url 'appointments_edit' item.appointment.id %}">Editar</a>
+                                                    {% if item.appointment.status != 'cancelado' %}
+                                                        <a href="{% url 'appointments_cancel' item.appointment.id %}">Cancelar</a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </article>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="empty">Sem consultas neste dia.</p>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
                 </div>
             {% else %}
                 <p class="empty">Nao ha consultas neste periodo.</p>

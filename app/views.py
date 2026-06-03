@@ -95,6 +95,56 @@ def _get_period_range(reference_date, period: str):
     return start_day, end_day, start_dt, end_dt
 
 
+def _build_agenda_days(appointments, start_day, end_day, now):
+    days = []
+    cursor = start_day
+    while cursor < end_day:
+        days.append(
+            {
+                "date": cursor,
+                "appointments": [],
+                "total": 0,
+                "scheduled": 0,
+                "completed": 0,
+                "canceled": 0,
+            }
+        )
+        cursor += timedelta(days=1)
+
+    day_map = {day["date"]: day for day in days}
+    next_scheduled_id = None
+    for appointment in appointments:
+        if appointment.status == Appointment.STATUS_SCHEDULED and appointment.end_time >= now:
+            next_scheduled_id = appointment.id
+            break
+
+    for appointment in appointments:
+        day = day_map.get(timezone.localtime(appointment.date_time).date())
+        if not day:
+            continue
+
+        is_late = appointment.status == Appointment.STATUS_SCHEDULED and appointment.end_time < now
+        is_next = appointment.id == next_scheduled_id
+        day["appointments"].append(
+            {
+                "appointment": appointment,
+                "is_late": is_late,
+                "is_next": is_next,
+                "start_label": timezone.localtime(appointment.date_time).strftime("%H:%M"),
+                "end_label": timezone.localtime(appointment.end_time).strftime("%H:%M"),
+            }
+        )
+        day["total"] += 1
+        if appointment.status == Appointment.STATUS_SCHEDULED:
+            day["scheduled"] += 1
+        elif appointment.status == Appointment.STATUS_COMPLETED:
+            day["completed"] += 1
+        elif appointment.status == Appointment.STATUS_CANCELED:
+            day["canceled"] += 1
+
+    return days
+
+
 class UserLoginView(LoginView):
     template_name = "auth/login.html"
     authentication_form = LoginForm
@@ -461,6 +511,7 @@ def appointment_list_view(request):
 
 @role_required(ROLE_ADMIN, ROLE_DENTIST, ROLE_RECEPTION)
 def agenda_view(request):
+    now = timezone.localtime()
     period = request.GET.get("period", "week")
     if period not in {"day", "week", "month"}:
         period = "week"
@@ -469,7 +520,7 @@ def agenda_view(request):
     start_day, end_day, start_dt, end_dt = _get_period_range(reference_date, period)
     status_filter = request.GET.get("status", "").strip()
 
-    appointments = (
+    appointments = list(
         Appointment.objects.select_related("patient")
         .filter(date_time__gte=start_dt, date_time__lt=end_dt)
         .order_by("date_time")
@@ -477,7 +528,24 @@ def agenda_view(request):
     if status_filter not in {"", *dict(Appointment.STATUS_CHOICES).keys()}:
         status_filter = ""
     if status_filter:
-        appointments = appointments.filter(status=status_filter)
+        appointments = [
+            appointment
+            for appointment in appointments
+            if appointment.status == status_filter
+        ]
+
+    agenda_days = _build_agenda_days(appointments, start_day, end_day, now)
+    agenda_totals = {
+        "total": len(appointments),
+        "scheduled": sum(1 for item in appointments if item.status == Appointment.STATUS_SCHEDULED),
+        "completed": sum(1 for item in appointments if item.status == Appointment.STATUS_COMPLETED),
+        "canceled": sum(1 for item in appointments if item.status == Appointment.STATUS_CANCELED),
+        "late": sum(
+            1
+            for item in appointments
+            if item.status == Appointment.STATUS_SCHEDULED and item.end_time < now
+        ),
+    }
 
     month_start = reference_date.replace(day=1)
     month_days = calendar.monthrange(reference_date.year, reference_date.month)[1]
@@ -534,6 +602,8 @@ def agenda_view(request):
         "appointments/agenda.html",
         {
             "appointments": appointments,
+            "agenda_days": agenda_days,
+            "agenda_totals": agenda_totals,
             "period": period,
             "date_filter": reference_date.strftime("%Y-%m-%d"),
             "title_period": title_period,
@@ -579,11 +649,15 @@ def appointment_edit_view(request, appointment_id):
     if request.method == "POST":
         form = AppointmentForm(request.POST, instance=appointment)
         if form.is_valid():
+            is_reschedule = bool({"date_time", "duration_minutes"} & set(form.changed_data))
             appointment = form.save(commit=False)
             appointment.updated_by = request.user
             appointment.save()
             _ensure_history_for_completed_appointment(appointment, request.user)
-            messages.success(request, "Consulta atualizada com sucesso.")
+            if is_reschedule:
+                messages.success(request, "Consulta reagendada com sucesso.")
+            else:
+                messages.success(request, "Consulta atualizada com sucesso.")
             return redirect("appointments_list")
     else:
         initial = {

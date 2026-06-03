@@ -425,6 +425,79 @@ class AppointmentViewTestCase(BaseAuthTestCase):
         self.assertEqual(appointment.status, Appointment.STATUS_CANCELED)
         self.assertEqual(appointment.updated_by, self.user)
 
+    def test_agenda_shows_operational_cards_and_flags(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Operacional",
+            cpf="123.555.777-10",
+            phone="(11) 91234-5678",
+        )
+        now = timezone.localtime().replace(second=0, microsecond=0)
+        past_slot = now.replace(hour=max(now.hour - 2, 0), minute=0)
+        future_slot = now + timedelta(hours=1)
+
+        if past_slot >= now:
+            past_slot = now - timedelta(hours=2)
+
+        Appointment.objects.create(
+            patient=patient,
+            date_time=past_slot,
+            duration_minutes=30,
+            treatment="Consulta atrasada",
+            status=Appointment.STATUS_SCHEDULED,
+        )
+        Appointment.objects.create(
+            patient=patient,
+            date_time=future_slot,
+            duration_minutes=45,
+            treatment="Consulta proxima",
+            status=Appointment.STATUS_SCHEDULED,
+        )
+        Appointment.objects.create(
+            patient=patient,
+            date_time=future_slot + timedelta(hours=2),
+            duration_minutes=60,
+            treatment="Consulta concluida",
+            status=Appointment.STATUS_COMPLETED,
+        )
+
+        response = self.client.get(
+            reverse("agenda"),
+            {
+                "period": "day",
+                "date": now.strftime("%Y-%m-%d"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "agenda-board")
+        self.assertContains(response, "Paciente Operacional")
+        self.assertContains(response, "Consulta atrasada")
+        self.assertContains(response, "Atrasada")
+        self.assertContains(response, "Consulta proxima")
+        self.assertContains(response, "Proxima")
+        self.assertContains(response, "(11) 91234-5678")
+
+    def test_edit_appointment_form_shows_current_context(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Contexto",
+            cpf="123.888.777-10",
+            phone="11988887777",
+        )
+        appointment = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime().replace(second=0, microsecond=0) + timedelta(days=2),
+            duration_minutes=40,
+            treatment="Ajuste de aparelho",
+            status=Appointment.STATUS_SCHEDULED,
+        )
+
+        response = self.client.get(reverse("appointments_edit", args=[appointment.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Paciente Contexto")
+        self.assertContains(response, "Horario atual")
+        self.assertContains(response, "40")
+
     def test_cannot_create_appointment_in_past(self):
         patient = Patient.objects.create(
             full_name="Paciente Passado",
