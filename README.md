@@ -30,8 +30,12 @@ O DentalCore apoia a operação diária de uma clínica odontológica com:
 
 - CRUD completo de pacientes;
 - busca por nome, CPF, telefone ou observações;
+- busca por CPF/telefone com ou sem máscara;
 - listagem paginada;
-- detalhe do paciente com dados cadastrais, consultas recentes e histórico clínico recente.
+- detalhe do paciente com dados cadastrais, consultas recentes e histórico clínico recente;
+- resumo operacional com total de consultas, agendadas, concluídas, canceladas e último procedimento;
+- alertas para prontuário sem anamnese, ausência de evolução clínica e falta de próxima consulta;
+- ações rápidas para agendar consulta, editar cadastro e abrir prontuário.
 
 ### Consultas e Agenda
 

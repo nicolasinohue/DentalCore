@@ -196,6 +196,49 @@ nav a:hover,
     font-size: 0.85rem;
 }
 
+.patient-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.patient-kpi-grid article {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    background: #fff;
+    display: grid;
+    gap: 5px;
+}
+
+.patient-kpi-grid article.wide {
+    grid-column: span 2;
+}
+
+.patient-kpi-grid strong {
+    color: var(--brand-dark);
+    font-size: 1.35rem;
+    overflow-wrap: anywhere;
+}
+
+.patient-kpi-grid span {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.patient-alerts {
+    display: grid;
+    gap: 8px;
+}
+
+.patient-alerts article {
+    border: 1px solid #e7bd7a;
+    border-radius: 10px;
+    background: #fff8e6;
+    padding: 10px 12px;
+    color: #725318;
+}
+
 .stat-card {
     padding: 18px;
 }
@@ -786,6 +829,10 @@ textarea {
 
     .summary-grid {
         grid-template-columns: 1fr;
+    }
+
+    .patient-kpi-grid {
+        grid-template-columns: 1fr 1fr;
     }
 
     .search-row {

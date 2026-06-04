@@ -300,6 +300,18 @@ class PatientCrudTestCase(BaseAuthTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Paciente Busca", response.content)
 
+    def test_patient_search_by_formatted_phone_with_digits(self):
+        Patient.objects.create(
+            full_name="Paciente Telefone",
+            cpf="123.987.654-10",
+            phone="(11) 91234-5678",
+        )
+
+        response = self.client.get(reverse("patients_list"), {"search": "11912345678"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Paciente Telefone")
+
     def test_patient_list_is_paginated(self):
         patients = [
             Patient(
@@ -339,6 +351,54 @@ class PatientCrudTestCase(BaseAuthTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Paciente Detalhe", response.content)
         self.assertIn(b"Retorno", response.content)
+
+    def test_patient_detail_shows_summary_alerts_and_last_procedure(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Resumo",
+            cpf="555.123.789-10",
+            phone="11955551234",
+        )
+        now = timezone.localtime().replace(second=0, microsecond=0)
+        Appointment.objects.create(
+            patient=patient,
+            date_time=now - timedelta(days=3),
+            duration_minutes=45,
+            treatment="Profilaxia",
+            status=Appointment.STATUS_COMPLETED,
+        )
+        Appointment.objects.create(
+            patient=patient,
+            date_time=now + timedelta(days=3),
+            duration_minutes=30,
+            treatment="Retorno",
+            status=Appointment.STATUS_SCHEDULED,
+        )
+        ClinicalHistoryEntry.objects.create(
+            patient=patient,
+            procedure_name="Raspagem",
+            performed_at=now - timedelta(days=2),
+        )
+
+        response = self.client.get(reverse("patients_detail", args=[patient.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Resumo do paciente")
+        self.assertContains(response, "Total de consultas")
+        self.assertContains(response, "Raspagem")
+        self.assertContains(response, "Prontuario sem anamnese preenchida.")
+        self.assertContains(response, f"{reverse('appointments_create')}?patient={patient.id}")
+
+    def test_create_appointment_form_can_preselect_patient(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Preselecionado",
+            cpf="222.987.654-10",
+            phone="11922229876",
+        )
+
+        response = self.client.get(reverse("appointments_create"), {"patient": patient.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'value="{patient.id}" selected')
 
 
 class AppointmentViewTestCase(BaseAuthTestCase):

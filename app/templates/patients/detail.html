@@ -7,6 +7,7 @@
     <div class="panel-header">
         <h1>{{ patient.full_name }}</h1>
         <div class="panel-actions">
+            <a class="btn" href="{% url 'appointments_create' %}?patient={{ patient.id }}">Agendar consulta</a>
             <a class="btn btn-light" href="{% url 'patients_edit' patient.id %}">Editar paciente</a>
             <a class="btn btn-light" href="{% url 'patient_record' patient.id %}">Prontuario</a>
             <a class="btn btn-light" href="{% url 'patients_list' %}">Voltar</a>
@@ -27,8 +28,47 @@
 
 <section class="panel">
     <div class="panel-header">
+        <h2>Resumo do paciente</h2>
+        <a class="btn btn-light" href="{% url 'patient_record' patient.id %}">Abrir prontuario</a>
+    </div>
+    <div class="patient-kpi-grid">
+        <article>
+            <strong>{{ patient_summary.total }}</strong>
+            <span>Total de consultas</span>
+        </article>
+        <article>
+            <strong>{{ patient_summary.scheduled }}</strong>
+            <span>Agendadas</span>
+        </article>
+        <article>
+            <strong>{{ patient_summary.completed }}</strong>
+            <span>Concluidas</span>
+        </article>
+        <article>
+            <strong>{{ patient_summary.canceled }}</strong>
+            <span>Canceladas</span>
+        </article>
+        <article class="wide">
+            <strong>{{ patient_summary.last_procedure }}</strong>
+            <span>Ultimo procedimento</span>
+        </article>
+    </div>
+
+    {% if patient_alerts %}
+        <div class="patient-alerts top-gap">
+            {% for alert in patient_alerts %}
+                <article>{{ alert }}</article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty top-gap">Cadastro clinico sem pendencias principais.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
         <h2>Consultas recentes</h2>
-        <a class="btn" href="{% url 'appointments_create' %}">Nova consulta</a>
+        <a class="btn" href="{% url 'appointments_create' %}?patient={{ patient.id }}">Nova consulta</a>
     </div>
     {% if appointments %}
         <div class="table-wrap">

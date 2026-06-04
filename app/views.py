@@ -145,6 +145,35 @@ def _build_agenda_days(appointments, start_day, end_day, now):
     return days
 
 
+def _format_cpf_digits(digits):
+    if len(digits) != 11:
+        return None
+    return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
+
+
+def _format_phone_digits(digits):
+    if len(digits) == 11:
+        return f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
+    if len(digits) == 10:
+        return f"({digits[:2]}) {digits[2:6]}-{digits[6:]}"
+    return None
+
+
+def _is_record_incomplete(record):
+    if not record:
+        return True
+    relevant_fields = [
+        record.chief_complaint,
+        record.medical_history,
+        record.systemic_diseases,
+        record.allergies,
+        record.medications,
+        record.dental_history,
+        record.treatment_plan,
+    ]
+    return not any(value.strip() for value in relevant_fields if value)
+
+
 class UserLoginView(LoginView):
     template_name = "auth/login.html"
     authentication_form = LoginForm
@@ -307,16 +336,16 @@ def patient_list_view(request):
 
     if search:
         search_digits = re.sub(r"\D", "", search)
-        formatted_cpf = (
-            f"{search_digits[:3]}.{search_digits[3:6]}.{search_digits[6:9]}-{search_digits[9:]}"
-            if len(search_digits) == 11
-            else search
-        )
+        formatted_cpf = _format_cpf_digits(search_digits)
+        formatted_phone = _format_phone_digits(search_digits)
         patients = patients.filter(
             Q(full_name__icontains=search)
             | Q(cpf__icontains=search)
-            | Q(cpf__icontains=formatted_cpf)
+            | Q(cpf__icontains=search_digits)
+            | Q(cpf__icontains=formatted_cpf or search)
             | Q(phone__icontains=search)
+            | Q(phone__icontains=search_digits)
+            | Q(phone__icontains=formatted_phone or search)
             | Q(notes__icontains=search)
         )
 
@@ -375,19 +404,45 @@ def patient_create_view(request):
 @role_required(ROLE_ADMIN, ROLE_DENTIST, ROLE_RECEPTION)
 def patient_detail_view(request, patient_id):
     patient = get_object_or_404(Patient, id=patient_id)
-    appointments = patient.appointments.order_by("-date_time")[:10]
+    appointment_qs = patient.appointments.all()
+    appointments = appointment_qs.order_by("-date_time")[:10]
     last_appointment = (
-        patient.appointments.filter(date_time__lt=timezone.now())
+        appointment_qs.filter(date_time__lt=timezone.now())
         .order_by("-date_time")
         .first()
     )
     next_appointment = (
-        patient.appointments.filter(date_time__gte=timezone.now())
+        appointment_qs.filter(date_time__gte=timezone.now())
         .exclude(status=Appointment.STATUS_CANCELED)
         .order_by("date_time")
         .first()
     )
     history_entries = patient.clinical_history_entries.order_by("-performed_at")[:5]
+    latest_history = patient.clinical_history_entries.order_by("-performed_at").first()
+    latest_completed = (
+        appointment_qs.filter(status=Appointment.STATUS_COMPLETED)
+        .order_by("-date_time")
+        .first()
+    )
+    record = getattr(patient, "dental_record", None)
+    patient_summary = {
+        "total": appointment_qs.count(),
+        "scheduled": appointment_qs.filter(status=Appointment.STATUS_SCHEDULED).count(),
+        "completed": appointment_qs.filter(status=Appointment.STATUS_COMPLETED).count(),
+        "canceled": appointment_qs.filter(status=Appointment.STATUS_CANCELED).count(),
+        "last_procedure": (
+            latest_history.procedure_name
+            if latest_history
+            else latest_completed.treatment if latest_completed else "-"
+        ),
+    }
+    patient_alerts = []
+    if _is_record_incomplete(record):
+        patient_alerts.append("Prontuario sem anamnese preenchida.")
+    if not latest_history:
+        patient_alerts.append("Sem evolucao clinica registrada.")
+    if not next_appointment:
+        patient_alerts.append("Sem proxima consulta agendada.")
 
     return render(
         request,
@@ -398,6 +453,8 @@ def patient_detail_view(request, patient_id):
             "last_appointment": last_appointment,
             "next_appointment": next_appointment,
             "history_entries": history_entries,
+            "patient_summary": patient_summary,
+            "patient_alerts": patient_alerts,
         },
     )
 
@@ -630,7 +687,11 @@ def appointment_create_view(request):
             messages.success(request, "Consulta cadastrada com sucesso.")
             return redirect("appointments_list")
     else:
-        form = AppointmentForm()
+        initial = {}
+        patient_id = request.GET.get("patient")
+        if patient_id and Patient.objects.filter(id=patient_id).exists():
+            initial["patient"] = patient_id
+        form = AppointmentForm(initial=initial)
 
     return render(
         request,
