@@ -69,7 +69,9 @@
                            href="?period=day&date={{ cell.date|date:'Y-m-d' }}">
                             <span>{{ cell.date|date:'d' }}</span>
                             {% if cell.count %}
-                                <small>{{ cell.count }} consulta{{ cell.count|pluralize }}</small>
+                                <small class="calendar-count"
+                                       title="{{ cell.count }} consulta{{ cell.count|pluralize }}"
+                                       aria-label="{{ cell.count }} consulta{{ cell.count|pluralize }}">{{ cell.count }}</small>
                             {% endif %}
                         </a>
                     {% endif %}

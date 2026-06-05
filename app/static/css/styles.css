@@ -474,6 +474,7 @@ th {
 }
 
 .calendar-cell {
+    min-width: 0;
     min-height: 72px;
     border: 1px solid #dfd9ce;
     border-radius: 10px;
@@ -483,6 +484,8 @@ th {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    gap: 6px;
+    overflow: hidden;
 }
 
 .calendar-cell:hover {
@@ -492,6 +495,24 @@ th {
 .calendar-cell small {
     color: var(--muted);
     font-size: 0.78rem;
+    line-height: 1.25;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.calendar-count {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    padding: 0 7px;
+    background: #e8f1ef;
+    color: var(--brand-dark);
+    font-weight: 700;
 }
 
 .empty-cell {
