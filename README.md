@@ -45,6 +45,7 @@ O DentalCore apoia a operação diária de uma clínica odontológica com:
 - paginação na lista de consultas;
 - filtro por status;
 - cancelamento de consulta sem remover o registro da agenda;
+- conclusão de consulta por fluxo próprio, com criação automática de evolução clínica;
 - exibição de horário de término calculado pela duração;
 - calendário mensal com contagem de consultas por dia;
 - agenda operacional com blocos por dia e horário;
@@ -53,6 +54,7 @@ O DentalCore apoia a operação diária de uma clínica odontológica com:
 - cartões de consulta com paciente, telefone, procedimento, duração, status e ações rápidas;
 - contexto do paciente e do horário atual ao editar uma consulta;
 - mensagem específica quando uma edição altera data/hora ou duração, tratando como reagendamento;
+- bloqueio para concluir consulta futura ou cancelada;
 - bloqueio de sobreposição real de horário para consultas ativas;
 - consultas canceladas não bloqueiam horário;
 - consultas consecutivas são permitidas quando a anterior termina exatamente no início da próxima;
@@ -340,6 +342,7 @@ Estado atual esperado:
 - Consultas consecutivas são permitidas quando a anterior termina exatamente no início da próxima.
 - Novas consultas não podem ser criadas no passado.
 - Consultas futuras não podem ser marcadas como concluídas.
+- Consultas canceladas não podem ser concluídas nem editadas como consultas ativas.
 - Ao concluir uma consulta, o sistema cria histórico clínico relacionado se ainda não houver registro para aquela consulta.
 - Ao editar data/hora ou duração, a aplicação informa a ação como reagendamento.
 

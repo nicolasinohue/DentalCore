@@ -56,7 +56,10 @@
                     <td><span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td>
                     <td class="actions">
                         <a href="{% url 'appointments_edit' appointment.id %}">Editar</a>
-                        {% if appointment.status != 'cancelado' %}
+                        {% if appointment.can_complete %}
+                            <a href="{% url 'appointments_complete' appointment.id %}">Concluir</a>
+                        {% endif %}
+                        {% if appointment.can_cancel %}
                             <a href="{% url 'appointments_cancel' appointment.id %}">Cancelar</a>
                         {% endif %}
                         <a class="danger-link" href="{% url 'appointments_delete' appointment.id %}">Excluir</a>

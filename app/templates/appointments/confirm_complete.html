@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Concluir consulta | DentalCore{% endblock %}
+
+{% block content %}
+<section class="form-card">
+    <h1>Concluir consulta</h1>
+    <p>Deseja concluir a consulta de <strong>{{ appointment.patient.full_name }}</strong> em {{ appointment.date_time|date:'d/m/Y H:i' }}?</p>
+    <p class="alert alert-info">
+        Ao concluir, o sistema cria uma evolucao clinica vinculada caso ainda nao exista historico para esta consulta.
+    </p>
+
+    <form method="post" class="form-actions">
+        {% csrf_token %}
+        <button type="submit" class="btn">Sim, concluir</button>
+        <a class="btn btn-light" href="{% url 'appointments_list' %}">Voltar</a>
+    </form>
+</section>
+{% endblock %}

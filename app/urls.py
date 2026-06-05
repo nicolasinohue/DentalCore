@@ -5,6 +5,7 @@ from .views import (
     UserLogoutView,
     agenda_view,
     appointment_cancel_view,
+    appointment_complete_view,
     appointment_create_view,
     appointment_delete_view,
     appointment_edit_view,
@@ -59,6 +60,11 @@ urlpatterns = [
         "appointments/<int:appointment_id>/cancel/",
         appointment_cancel_view,
         name="appointments_cancel",
+    ),
+    path(
+        "appointments/<int:appointment_id>/complete/",
+        appointment_complete_view,
+        name="appointments_complete",
     ),
     path("patients/<int:patient_id>/record/", dental_record_detail_view, name="patient_record"),
     path(

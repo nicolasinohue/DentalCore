@@ -119,6 +119,11 @@ class AppointmentForm(forms.ModelForm):
             self.add_error("date_time", "Nao e possivel criar consulta no passado.")
             return cleaned_data
 
+        if getattr(self.instance, "pk", None) and self.instance.status == Appointment.STATUS_CANCELED:
+            if status != Appointment.STATUS_CANCELED:
+                self.add_error("status", "Consultas canceladas nao podem ser reativadas pela edicao.")
+            return cleaned_data
+
         if status == Appointment.STATUS_COMPLETED and date_time > timezone.now():
             self.add_error("status", "A consulta so pode ser concluida apos o horario agendado.")
             return cleaned_data
