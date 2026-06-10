@@ -485,6 +485,157 @@ class AppointmentViewTestCase(BaseAuthTestCase):
         self.assertEqual(appointment.status, Appointment.STATUS_CANCELED)
         self.assertEqual(appointment.updated_by, self.user)
 
+    def test_complete_past_appointment_creates_history_entry(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Concluir",
+            cpf="333.222.111-00",
+            phone="11933332222",
+        )
+        appointment = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime() - timedelta(days=1),
+            duration_minutes=30,
+            treatment="Restauracao",
+            notes="Dente 16",
+            status=Appointment.STATUS_SCHEDULED,
+        )
+
+        response = self.client.post(reverse("appointments_complete", args=[appointment.id]))
+        appointment.refresh_from_db()
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(appointment.status, Appointment.STATUS_COMPLETED)
+        self.assertEqual(appointment.updated_by, self.user)
+        history = ClinicalHistoryEntry.objects.get(appointment=appointment)
+        self.assertEqual(history.patient, patient)
+        self.assertEqual(history.procedure_name, "Restauracao")
+        self.assertEqual(history.description, "Dente 16")
+        self.assertEqual(history.created_by, self.user)
+
+    def test_complete_future_appointment_is_blocked(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Futuro Bloqueado",
+            cpf="333.222.111-99",
+            phone="11933332221",
+        )
+        appointment = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime() + timedelta(days=1),
+            treatment="Consulta futura",
+            status=Appointment.STATUS_SCHEDULED,
+        )
+
+        response = self.client.post(reverse("appointments_complete", args=[appointment.id]))
+        appointment.refresh_from_db()
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(appointment.status, Appointment.STATUS_SCHEDULED)
+        self.assertFalse(ClinicalHistoryEntry.objects.filter(appointment=appointment).exists())
+
+    def test_complete_canceled_appointment_is_blocked(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Cancelado Bloqueado",
+            cpf="333.222.111-88",
+            phone="11933332220",
+        )
+        appointment = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime() - timedelta(days=1),
+            treatment="Consulta cancelada",
+            status=Appointment.STATUS_CANCELED,
+        )
+
+        response = self.client.post(reverse("appointments_complete", args=[appointment.id]))
+        appointment.refresh_from_db()
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(appointment.status, Appointment.STATUS_CANCELED)
+        self.assertFalse(ClinicalHistoryEntry.objects.filter(appointment=appointment).exists())
+
+    def test_complete_already_completed_appointment_does_not_duplicate_history(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Historico Unico",
+            cpf="333.222.111-77",
+            phone="11933332219",
+        )
+        appointment = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime() - timedelta(days=2),
+            treatment="Profilaxia",
+            status=Appointment.STATUS_COMPLETED,
+        )
+        ClinicalHistoryEntry.objects.create(
+            patient=patient,
+            appointment=appointment,
+            procedure_name="Profilaxia",
+        )
+
+        response = self.client.post(reverse("appointments_complete", args=[appointment.id]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ClinicalHistoryEntry.objects.filter(appointment=appointment).count(), 1)
+
+    def test_get_complete_completed_appointment_does_not_create_history(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Get Sem Mutacao",
+            cpf="333.222.111-44",
+            phone="11933332216",
+        )
+        appointment = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime() - timedelta(days=2),
+            treatment="Consulta ja concluida",
+            status=Appointment.STATUS_COMPLETED,
+        )
+
+        response = self.client.get(reverse("appointments_complete", args=[appointment.id]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ClinicalHistoryEntry.objects.filter(appointment=appointment).exists())
+
+    def test_canceled_appointment_cannot_be_edited(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Editar Cancelado",
+            cpf="333.222.111-66",
+            phone="11933332218",
+        )
+        appointment = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime() + timedelta(days=1),
+            treatment="Cancelada",
+            status=Appointment.STATUS_CANCELED,
+        )
+
+        response = self.client.get(reverse("appointments_edit", args=[appointment.id]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("appointments_list"))
+
+    def test_appointment_list_shows_complete_only_for_due_scheduled_appointments(self):
+        patient = Patient.objects.create(
+            full_name="Paciente Acoes Consulta",
+            cpf="333.222.111-55",
+            phone="11933332217",
+        )
+        due = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime() - timedelta(hours=1),
+            treatment="Atrasada",
+            status=Appointment.STATUS_SCHEDULED,
+        )
+        future = Appointment.objects.create(
+            patient=patient,
+            date_time=timezone.localtime() + timedelta(hours=1),
+            treatment="Futura",
+            status=Appointment.STATUS_SCHEDULED,
+        )
+
+        response = self.client.get(reverse("appointments_list"), {"period": "day"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("appointments_complete", args=[due.id]))
+        self.assertNotContains(response, reverse("appointments_complete", args=[future.id]))
+
     def test_agenda_shows_operational_cards_and_flags(self):
         patient = Patient.objects.create(
             full_name="Paciente Operacional",

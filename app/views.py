@@ -174,6 +174,26 @@ def _is_record_incomplete(record):
     return not any(value.strip() for value in relevant_fields if value)
 
 
+def _can_complete_appointment(appointment, now=None):
+    now = now or timezone.localtime()
+    return (
+        appointment.status == Appointment.STATUS_SCHEDULED
+        and appointment.date_time <= now
+    )
+
+
+def _can_cancel_appointment(appointment):
+    return appointment.status == Appointment.STATUS_SCHEDULED
+
+
+def _annotate_appointment_actions(appointments, now=None):
+    now = now or timezone.localtime()
+    for appointment in appointments:
+        appointment.can_complete = _can_complete_appointment(appointment, now)
+        appointment.can_cancel = _can_cancel_appointment(appointment)
+    return appointments
+
+
 class UserLoginView(LoginView):
     template_name = "auth/login.html"
     authentication_form = LoginForm
@@ -546,6 +566,7 @@ def appointment_list_view(request):
 
     paginator = Paginator(appointments, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
+    _annotate_appointment_actions(page_obj.object_list)
     query_params = request.GET.copy()
     query_params.pop("page", None)
 
@@ -590,6 +611,7 @@ def agenda_view(request):
             for appointment in appointments
             if appointment.status == status_filter
         ]
+    _annotate_appointment_actions(appointments, now)
 
     agenda_days = _build_agenda_days(appointments, start_day, end_day, now)
     agenda_totals = {
@@ -707,6 +729,10 @@ def appointment_create_view(request):
 def appointment_edit_view(request, appointment_id):
     appointment = get_object_or_404(Appointment, id=appointment_id)
 
+    if appointment.status == Appointment.STATUS_CANCELED:
+        messages.warning(request, "Consultas canceladas nao podem ser editadas.")
+        return redirect("appointments_list")
+
     if request.method == "POST":
         form = AppointmentForm(request.POST, instance=appointment)
         if form.is_valid():
@@ -759,6 +785,10 @@ def appointment_delete_view(request, appointment_id):
 def appointment_cancel_view(request, appointment_id):
     appointment = get_object_or_404(Appointment, id=appointment_id)
 
+    if not _can_cancel_appointment(appointment):
+        messages.warning(request, "Apenas consultas agendadas podem ser canceladas.")
+        return redirect("appointments_list")
+
     if request.method == "POST":
         appointment.status = Appointment.STATUS_CANCELED
         appointment.updated_by = request.user
@@ -769,6 +799,42 @@ def appointment_cancel_view(request, appointment_id):
     return render(
         request,
         "appointments/confirm_cancel.html",
+        {"appointment": appointment},
+    )
+
+
+@role_required(ROLE_ADMIN, ROLE_DENTIST, ROLE_RECEPTION)
+def appointment_complete_view(request, appointment_id):
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+
+    if appointment.status == Appointment.STATUS_CANCELED:
+        messages.warning(request, "Consultas canceladas nao podem ser concluidas.")
+        return redirect("appointments_list")
+
+    if appointment.status == Appointment.STATUS_COMPLETED:
+        if request.method == "POST":
+            _ensure_history_for_completed_appointment(appointment, request.user)
+        messages.info(request, "Consulta ja estava concluida.")
+        return redirect("appointments_list")
+
+    if not _can_complete_appointment(appointment):
+        messages.warning(
+            request,
+            "A consulta so pode ser concluida apos o horario agendado.",
+        )
+        return redirect("appointments_list")
+
+    if request.method == "POST":
+        appointment.status = Appointment.STATUS_COMPLETED
+        appointment.updated_by = request.user
+        appointment.save(update_fields=["status", "updated_by"])
+        _ensure_history_for_completed_appointment(appointment, request.user)
+        messages.success(request, "Consulta concluida e historico clinico atualizado.")
+        return redirect("appointments_list")
+
+    return render(
+        request,
+        "appointments/confirm_complete.html",
         {"appointment": appointment},
     )
 

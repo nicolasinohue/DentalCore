@@ -69,7 +69,9 @@
                            href="?period=day&date={{ cell.date|date:'Y-m-d' }}">
                             <span>{{ cell.date|date:'d' }}</span>
                             {% if cell.count %}
-                                <small>{{ cell.count }} consulta{{ cell.count|pluralize }}</small>
+                                <small class="calendar-count"
+                                       title="{{ cell.count }} consulta{{ cell.count|pluralize }}"
+                                       aria-label="{{ cell.count }} consulta{{ cell.count|pluralize }}">{{ cell.count }}</small>
                             {% endif %}
                         </a>
                     {% endif %}
@@ -117,7 +119,10 @@
                                                 <div class="appointment-actions">
                                                     <a href="{% url 'patients_detail' item.appointment.patient.id %}">Paciente</a>
                                                     <a href="{% url 'appointments_edit' item.appointment.id %}">Editar</a>
-                                                    {% if item.appointment.status != 'cancelado' %}
+                                                    {% if item.appointment.can_complete %}
+                                                        <a href="{% url 'appointments_complete' item.appointment.id %}">Concluir</a>
+                                                    {% endif %}
+                                                    {% if item.appointment.can_cancel %}
                                                         <a href="{% url 'appointments_cancel' item.appointment.id %}">Cancelar</a>
                                                     {% endif %}
                                                 </div>
